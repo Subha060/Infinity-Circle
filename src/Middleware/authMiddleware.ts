@@ -9,13 +9,13 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token" });
+    return res.status(401).json({ message: "Unauthorized User" });
   }
 
   const token = authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ message: "Token missing" });
+    return res.status(401).json({ message: "Unauthorized User" });
   }
 
   const secret: string = process.env.SECRET_KEY as string;
@@ -29,7 +29,7 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
     req.user = decoded;
     next();
   } catch {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid User" });
   }
 }
 

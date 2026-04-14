@@ -1,5 +1,7 @@
 import express, { urlencoded } from "express";
 import authRouter from "./Routes/authRouter";
+import updateRoutes from "./Routes/updateRouter";
+import authMiddleware from "./Middleware/authMiddleware";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -12,6 +14,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/user", authRouter);
+app.use("/api/user", authMiddleware, updateRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is connected at http://localhost:${PORT}`);
