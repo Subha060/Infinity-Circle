@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phoneNo   String?  @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  profile  Profile?
+  stories  Story[]
+  posts    Post[]
+  comments Comment[]
+
+  friendships Friendship[] @relation("UserFriendships")
+  friendOf    Friendship[] @relation("UserFriendOf")
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  avatar     String?
+  first_name String
+  last_name  String
+  age        Int?
+  bio        String?
+  createdAt  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  title     String?
+  url       String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  contentType String
+  url         String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  comments Comment[]
+
+  author User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+
+  author User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+model Friendship {
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("UserFriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+  @@index([friendId])
+}
