@@ -72,7 +72,7 @@ export async function changePassword(req: Request, res: Response) {
   }
 }
 
-// change phone number of email
+// Changing email or phone
 export async function changePhoneNo(req: Request, res: Response) {
   const id: string = req.user?.id;
   const { phoneNo, email, password } = req.body as {
@@ -81,29 +81,17 @@ export async function changePhoneNo(req: Request, res: Response) {
     password: string;
   };
 
-  if (!phoneNo.trim()) {
-    return res.status(400).json({
-      message: "New phone number is required",
-    });
+  if (!phoneNo?.trim()) {
+    return res.status(400).json({ message: "Phone number is missing" });
   }
 
-  if (!password.trim()) {
-    return res.status(400).json({
-      message: "Password is required",
-    });
+  if (!email?.trim()) {
+    return res.status(400).json({ message: "Email is missing" });
   }
 
-  // const isExists = await prisma.user.findUnique({
-  //   where: {
-  //     phoneNo: phoneNo,
-  //   },
-  // });
-
-  // if (isExists) {
-  //   return res.status(409).json({
-  //     message: "Phone number already in use"
-  //   })
-  // }
+  if (!password?.trim()) {
+    return res.status(400).json({ message: "Password is required" });
+  }
 
   try {
     const user = await prisma.user.findUnique({
@@ -111,9 +99,7 @@ export async function changePhoneNo(req: Request, res: Response) {
     });
 
     if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const verifyUser = await hashingPassword.verifyPassword(
@@ -122,30 +108,72 @@ export async function changePhoneNo(req: Request, res: Response) {
     );
 
     if (!verifyUser) {
-      return res.status(401).json({
-        message: "Wrong password",
-      });
+      return res.status(401).json({ message: "Wrong password" });
     }
 
-    if (phoneNo === user.phoneNo) {
+    if (phoneNo === user.phoneNo && email === user.email) {
       return res.status(400).json({
-        message: "New phone number must be different",
+        message: "New details must be different",
       });
     }
 
+    // Build update object
+    const updateData: any = {};
+    const conditions: any[] = [];
+
+    if (phoneNo !== user.phoneNo) {
+      updateData.phoneNo = phoneNo;
+      conditions.push({ phoneNo });
+    }
+
+    if (email !== user.email) {
+      updateData.email = email;
+      conditions.push({ email });
+    }
+
+    // Check uniqueness (only if something changed)
+    if (conditions.length > 0) {
+      const existing = await prisma.user.findFirst({
+        where: {
+          OR: conditions,
+          NOT: { id: user.id },
+        },
+      });
+
+      if (existing) {
+        if (existing.email === email) {
+          return res.status(400).json({
+            message: "Email already in use",
+          });
+        }
+
+        if (existing.phoneNo === phoneNo) {
+          return res.status(400).json({
+            message: "Phone number already in use",
+          });
+        }
+      }
+    }
+
+    // ✅ Always run update if changes exist
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        phoneNo: phoneNo,
-      },
+      data: updateData,
     });
 
     return res.status(200).json({
-      message: "Phone number updated successfully",
+      message: "Updated successfully",
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === "P2002") {
+      const field = error.meta?.target?.[0];
+      return res.status(400).json({
+        message: `${field} already in use`,
+      });
+    }
+
     return res.status(500).json({
-      message: "Something went wrong while changing password",
+      message: "Something went wrong while changing contact details",
     });
   }
 }
