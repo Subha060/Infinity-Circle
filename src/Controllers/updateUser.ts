@@ -73,7 +73,7 @@ export async function changePassword(req: Request, res: Response) {
 }
 
 // Changing email or phone
-export async function changePhoneNo(req: Request, res: Response) {
+export async function chnagecontact(req: Request, res: Response) {
   const id: string = req.user?.id;
   const { phoneNo, email, password } = req.body as {
     phoneNo: string;
