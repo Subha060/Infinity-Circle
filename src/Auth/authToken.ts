@@ -2,8 +2,6 @@ import Jwt from "jsonwebtoken";
 
 interface TokenPayload {
   id: string;
-  email: string;
-  phoneNo?: string | null;
 }
 
 export function createToken(payload: TokenPayload) {

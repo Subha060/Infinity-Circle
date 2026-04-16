@@ -1,11 +1,23 @@
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 
-interface AuthRequest extends Request {
-  user?: string | JwtPayload;
+// interface AuthRequest extends Request {
+//   user?: string | JwtPayload;
+// }
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?:
+        | {
+            id: string;
+          }
+        | JwtPayload;
+    }
+  }
 }
 
-function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -26,6 +38,11 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
 
   try {
     const decoded = jwt.verify(token, secret);
+
+    if (typeof decoded === "string") {
+      return res.status(401).json({ message: "Invalid User" });
+    }
+
     req.user = decoded;
     next();
   } catch {

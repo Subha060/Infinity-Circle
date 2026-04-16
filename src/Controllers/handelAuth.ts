@@ -41,8 +41,6 @@ export async function register(req: Request, res: Response) {
 
     const token = createToken({
       id: user.id,
-      email: user.email,
-      phoneNo: user.phoneNo,
     });
 
     return res.status(201).json({
@@ -116,8 +114,6 @@ export async function login(req: Request, res: Response) {
 
     const token = createToken({
       id: user.id,
-      email: user.email,
-      phoneNo: user.phoneNo,
     });
 
     return res.status(200).json({

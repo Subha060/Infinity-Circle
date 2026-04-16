@@ -13,7 +13,10 @@ app.get("/", (req, res) => {
   res.send("server is connected");
 });
 
+// for login and register
 app.use("/api/user", authRouter);
+
+// for changing importent tasks like password email of phoneNo
 app.use("/api/user", authMiddleware, updateRoutes);
 
 app.listen(PORT, () => {
