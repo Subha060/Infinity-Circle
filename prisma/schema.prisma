@@ -31,7 +31,7 @@ model Profile {
   avatar     String?
   first_name String
   last_name  String
-  age        Int?
+  dob        DateTime
   bio        String?
   createdAt  DateTime @default(now())
 
