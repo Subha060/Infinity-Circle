@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.ts";
 import type { Request, Response } from "express";
 
+// Prisma schema for reference
 // model Profile {
 //   id         String   @id @default(cuid())
 //   avatar     String?
@@ -14,6 +15,7 @@ import type { Request, Response } from "express";
 //   userId String @unique
 // }
 
+// Get the profile of the authenticated user
 export async function getProfile(req: Request, res: Response) {
   const userId = req.user?.id;
 
@@ -21,6 +23,14 @@ export async function getProfile(req: Request, res: Response) {
     const userProfile = await prisma.profile.findUnique({
       where: {
         userId: userId,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phoneNo: true,
+          },
+        },
       },
     });
 
@@ -36,6 +46,7 @@ export async function getProfile(req: Request, res: Response) {
   }
 }
 
+// Create a new profile for the authenticated user
 export async function createProfile(req: Request, res: Response) {
   const userId = req.user?.id;
   const { first_name, last_name, dob, bio } = req.body as {
@@ -98,6 +109,14 @@ export async function createProfile(req: Request, res: Response) {
           connect: { id: userId }, // link profile to user
         },
       },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phoneNo: true,
+          },
+        },
+      },
     });
 
     return res.status(201).json({
@@ -106,6 +125,95 @@ export async function createProfile(req: Request, res: Response) {
     });
   } catch (error) {
     console.error("Create profile error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// Update an existing profile for the authenticated user
+export async function updateProfile(req: Request, res: Response) {
+  const userId = req.user?.id;
+  const { first_name, last_name, dob, bio } = req.body as {
+    first_name?: string;
+    last_name?: string;
+    dob?: string;
+    bio?: string;
+  };
+
+  try {
+    // Check if profile exists
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!existingProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Check if at least one field is provided for update
+    if (
+      !first_name?.trim() &&
+      !last_name?.trim() &&
+      !dob &&
+      (bio === undefined || bio.trim() === "")
+    ) {
+      return res.status(400).json({ message: "Nothing to update" });
+    }
+
+    // Validate date format if provided
+    let dobDate: Date | undefined;
+    if (dob) {
+      dobDate = new Date(dob);
+      if (isNaN(dobDate.getTime())) {
+        return res
+          .status(400)
+          .json({ message: "Invalid date format. Use YYYY-MM-DD" });
+      }
+    }
+
+    // Age verification if dob is being updated
+    if (dobDate) {
+      const today = new Date();
+      let age = today.getFullYear() - dobDate.getFullYear();
+      const monthDiff = today.getMonth() - dobDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < dobDate.getDate())
+      ) {
+        age--;
+      }
+      if (age < 13) {
+        return res
+          .status(403)
+          .json({ message: "You must be at least 13 years old to register." });
+      }
+    }
+
+    // Update only the fields that are provided, otherwise keep existing values
+    const updatedProfile = await prisma.profile.update({
+      where: { userId },
+      data: {
+        first_name: first_name?.trim() ?? existingProfile.first_name,
+        last_name: last_name?.trim() ?? existingProfile.last_name,
+        dob: dobDate ?? existingProfile.dob,
+        bio: bio?.trim() ?? existingProfile.bio,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phoneNo: true,
+          },
+        },
+      },
+    });
+
+    // Return the updated profile data
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      profile: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }
