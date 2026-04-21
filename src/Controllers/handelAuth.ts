@@ -37,6 +37,9 @@ export async function register(req: Request, res: Response) {
         phoneNo,
         password: hashedPassword,
       },
+      include: {
+        profile: true,
+      },
     });
 
     const token = createToken({
@@ -45,7 +48,8 @@ export async function register(req: Request, res: Response) {
 
     return res.status(201).json({
       message: "Registration successful",
-      token,
+      profile: user.profile,
+      token: token,
     });
   } catch (error: any) {
     // Prisma unique constraint error
@@ -92,6 +96,9 @@ export async function login(req: Request, res: Response) {
       where: isEmail
         ? { email: username.toLowerCase() }
         : { phoneNo: username },
+      include: {
+        profile: true,
+      },
     });
 
     // ✅ Avoid user enumeration
@@ -118,7 +125,8 @@ export async function login(req: Request, res: Response) {
 
     return res.status(200).json({
       message: "Login successful",
-      token,
+      profile: user.profile,
+      token: token,
     });
   } catch {
     return res.status(500).json({

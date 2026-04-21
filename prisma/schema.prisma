@@ -7,15 +7,16 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
 }
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  phoneNo   String?  @unique
+  phoneNo   String?  @unique @db.VarChar(15)
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   profile  Profile?
   stories  Story[]
@@ -28,12 +29,13 @@ model User {
 
 model Profile {
   id         String   @id @default(cuid())
-  avatar     String?
+  avatar     String?  @db.Text
   first_name String
   last_name  String
-  dob        DateTime
-  bio        String?
+  dob        DateTime @db.Date
+  bio        String?  @db.LongText
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique
@@ -41,20 +43,28 @@ model Profile {
 
 model Story {
   id        String   @id @default(cuid())
-  title     String?
-  url       String?
+  title     String?  @db.Text
+  url       String?  @db.Text
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 }
 
+enum ContentType {
+  IMAGE
+  VIDEO
+  TEXT
+}
+
 model Post {
-  id          String   @id @default(cuid())
-  contentType String
-  url         String?
-  description String?
-  createdAt   DateTime @default(now())
+  id          String      @id @default(cuid())
+  title       String      @db.Text
+  contentType ContentType
+  url         String?     @db.Text
+  description String?     @db.MediumText
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   comments Comment[]
 
@@ -64,7 +74,7 @@ model Post {
 
 model Comment {
   id        String   @id @default(cuid())
-  content   String
+  content   String   @db.LongText
   createdAt DateTime @default(now())
 
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
