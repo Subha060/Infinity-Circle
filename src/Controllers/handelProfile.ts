@@ -19,20 +19,20 @@ import type { Request, Response } from "express";
 export async function getProfile(req: Request, res: Response) {
   const userId = req.user?.id;
 
+  if (!userId || typeof userId !== "string") {
+    return res.status(401).json({ message: "Unauthorized User" });
+  }
+
   try {
     const userProfile = await prisma.profile.findUnique({
       where: {
         userId: userId,
       },
-      include: {
-        user: {
-          select: {
-            email: true,
-            phoneNo: true,
-          },
-        },
-      },
     });
+
+    if (!userProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
 
     return res.status(200).json({
       message: "Profile data retrieved successfully",
@@ -55,6 +55,9 @@ export async function createProfile(req: Request, res: Response) {
     dob: string;
     bio?: string;
   };
+
+  // file upload handling
+  const file = req.file; // <-- multer file
 
   // Check required fields
   if (!first_name?.trim() || !last_name?.trim()) {
@@ -99,8 +102,13 @@ export async function createProfile(req: Request, res: Response) {
       return res.status(409).json({ message: "Profile already exists" });
     }
 
+    // file url from multer
+    const fileUrl = file ? `/uploads/${userId}/avatar/${file.filename}` : null;
+    // avatar: file? file.path : null,
+
     const userProfile = await prisma.profile.create({
       data: {
+        avatar: fileUrl, // Save file path if uploaded
         first_name: first_name.trim(),
         last_name: last_name.trim(),
         dob: dobDate,
@@ -214,6 +222,60 @@ export async function updateProfile(req: Request, res: Response) {
     });
   } catch (error) {
     console.error("Update profile error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// change avater of the user
+export async function changeAvater(req: Request, res: Response) {
+  const userId = req.user?.id;
+
+  if (!userId || typeof userId !== "string") {
+    return res.status(401).json({ message: "Unauthorized User" });
+  }
+
+  try {
+    // Check if profile exists
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!existingProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // file upload handling
+    const file = req.file; // <-- multer file
+
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // file url from multer
+    const fileUrl = `/uploads/${userId}/avatar/${file.filename}`;
+
+    // Update the avatar field in the profile
+    const updatedProfile = await prisma.profile.update({
+      where: { userId },
+      data: {
+        avatar: fileUrl,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phoneNo: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      message: "Avatar updated successfully",
+      profile: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Change avatar error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }

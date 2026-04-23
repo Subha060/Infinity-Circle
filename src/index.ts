@@ -6,7 +6,7 @@ import authMiddleware from "./Middleware/authMiddleware";
 // routers
 import authRouter from "./Routes/authRouter";
 import updateRoutes from "./Routes/updateRouter";
-import profileRoute from "./Routes/profileRouter.ts";
+import profileRoute from "./Routes/profileRouter";
 
 // configs
 const app = express();
@@ -19,6 +19,9 @@ app.use(express.urlencoded({ extended: false }));
 app.get("/", (req, res) => {
   res.send("server is connected");
 });
+
+// for static upload file
+app.use("/uploads", express.static("uploads"));
 
 // for login and register
 app.use("/api/user", authRouter);
